@@ -707,7 +707,9 @@ class SpeedtestResults(object):
         self.client = client or {}
 
         self._share = None
-        self.timestamp = '%sZ' % datetime.datetime.utcnow().isoformat()
+        self.timestamp = datetime.datetime.now(
+            datetime.timezone.utc
+        ).isoformat().replace('+00:00', 'Z')
         self.bytes_received = 0
         self.bytes_sent = 0
 
