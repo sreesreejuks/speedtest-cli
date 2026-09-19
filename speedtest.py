@@ -995,6 +995,8 @@ class Speedtest(object):
                     )
 
         urls = [
+            'https://www.speedtest.net/api/js/servers?engine=js&'
+            'https_functional=true&limit=100',
             '://www.speedtest.net/speedtest-servers-static.php',
             'http://c.speedtest.net/speedtest-servers-static.php',
             '://www.speedtest.net/speedtest-servers.php',
@@ -1040,19 +1042,27 @@ class Speedtest(object):
 
                 printer('Servers XML:\n%s' % serversxml, debug=True)
 
-                try:
-                    root = ET.fromstring(serversxml)
-                except ET.ParseError as e:
-                    raise SpeedtestServersError(
-                        'Malformed speedtest.net server list: %s' % e
-                    )
-                except (SyntaxError, xml.parsers.expat.ExpatError):
-                    raise ServersRetrievalError()
+                if url.startswith('https://www.speedtest.net/api/js/servers'):
+                    try:
+                        elements = json.loads(serversxml.decode('utf-8'))
+                    except (UnicodeDecodeError, json.JSONDecodeError) as e:
+                        raise SpeedtestServersError(
+                            'Malformed speedtest.net server list: %s' % e
+                        )
+                else:
+                    try:
+                        root = ET.fromstring(serversxml)
+                    except ET.ParseError as e:
+                        raise SpeedtestServersError(
+                            'Malformed speedtest.net server list: %s' % e
+                        )
+                    except (SyntaxError, xml.parsers.expat.ExpatError):
+                        raise ServersRetrievalError()
 
-                elements = etree_iter(root, 'server')
+                    elements = etree_iter(root, 'server')
 
                 for server in elements:
-                    attrib = server.attrib
+                    attrib = server if isinstance(server, dict) else server.attrib
 
                     if servers and int(attrib.get('id')) not in servers:
                         continue
